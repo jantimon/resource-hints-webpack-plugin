@@ -1,0 +1,43 @@
+{
+  "name": "html-resource-hints-plugin",
+  "version": "0.0.1",
+  "description": "Adds automatically Resource hints to your html-files",
+  "main": "index.js",
+  "files": [
+    "index.js"
+  ],
+  "scripts": {
+    "prepublish": "npm run test",
+    "pretest": "semistandard",
+    "test": "jasmine",
+    "debug": "node-debug jasmine"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/jantimon/html-Resource-hints-plugin.git"
+  },
+  "keywords": [
+    "webpack",
+    "plugin",
+    "html-webpack-plugin",
+    "disk",
+    "template"
+  ],
+  "author": "Jan Nicklas <j.nicklas@me.com> (https://github.com/jantimon)",
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/jantimon/html-Resource-hints-plugin/issues"
+  },
+  "homepage": "https://github.com/jantimon/html-Resource-hints-plugin",
+  "devDependencies": {
+    "html-webpack-plugin": "^2.26.0",
+    "jasmine": "^2.4.1",
+    "memory-fs": "^0.4.1",
+    "semistandard": "8.0.0",
+    "webpack": "^1.14.0"
+  },
+  "dependencies": {
+    "minimatch": "^3.0.3",
+    "object-assign": "^4.1.0"
+  }
+}
