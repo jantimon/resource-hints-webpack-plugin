@@ -44,11 +44,11 @@ plugins: [
     prefetch: ['**/*.*'],
     preload: ['**/*.*']
   }),
-  new HtmlResourceHintPlugin()
+  new ResourceHintWebpackPlugin()
 ]  
 ```
 
-Even if you generate multiple files make sure that you add the HtmlResourceHintPlugin **only once**:
+Even if you generate multiple files make sure that you add the ResourceHintWebpackPlugin **only once**:
 
 ```javascript
 plugins: [
@@ -61,6 +61,6 @@ plugins: [
     preload: false,
     filename: 'demo.html'
   }),
-  new HtmlResourceHintPlugin()
+  new ResourceHintWebpackPlugin()
 ]  
 ```
