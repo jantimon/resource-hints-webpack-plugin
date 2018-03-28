@@ -31,7 +31,7 @@ class ResourceHintWebpackPlugin {
       compiler.hooks.compilation.tap('ResourceHintWebpackPlugin', compilation => {
         if (compilation.hooks.htmlWebpackPluginAlterAssetTags) {
           compilation.hooks.htmlWebpackPluginAlterAssetTags.tapAsync('ResourceHintWebpackPluginAlterAssetTags',
-            this.resourceHintWebpackPluginAlterAssetTags.bind(this)
+            resourceHintWebpackPluginAlterAssetTags
           );
         }
       });
@@ -39,68 +39,68 @@ class ResourceHintWebpackPlugin {
       // Webpack 1-3 Plugin System
       compiler.plugin('compilation', compilation => {
         compilation.plugin('html-webpack-plugin-alter-asset-tags',
-          this.resourceHintWebpackPluginAlterAssetTags.bind(this)
+          resourceHintWebpackPluginAlterAssetTags
         );
       });
     }
   }
+}
 
-  /**
-   * The main processing function
-   */
-  resourceHintWebpackPluginAlterAssetTags (htmlPluginData, callback) {
-    const htmlWebpackPluginOptions = htmlPluginData.plugin.options;
-    const pluginData = objectAssign({}, htmlPluginData);
-    const tags = {
-      prefetch: [],
-      // https://w3c.github.io/preload/#link-type-preload
-      preload: []
-    };
-    // Create Resource tags
-    Object.keys(tags).forEach(resourceHintType => {
-      // Check if it is disabled for the current htmlWebpackPlugin instance:
-      // e.g.
-      // new HtmlWebpackPlugin({
-      //   prefetch: false
-      // })
-      if (htmlWebpackPluginOptions[resourceHintType] === false) {
-        return;
+/**
+ * The main processing function
+ */
+function resourceHintWebpackPluginAlterAssetTags (htmlPluginData, callback) {
+  const htmlWebpackPluginOptions = htmlPluginData.plugin.options;
+  const pluginData = objectAssign({}, htmlPluginData);
+  const tags = {
+    prefetch: [],
+    // https://w3c.github.io/preload/#link-type-preload
+    preload: []
+  };
+  // Create Resource tags
+  Object.keys(tags).forEach(resourceHintType => {
+    // Check if it is disabled for the current htmlWebpackPlugin instance:
+    // e.g.
+    // new HtmlWebpackPlugin({
+    //   prefetch: false
+    // })
+    if (htmlWebpackPluginOptions[resourceHintType] === false) {
+      return;
+    }
+    // If no options are found all files are prefetched / preload
+    const fileFilters = htmlWebpackPluginOptions[resourceHintType]
+      ? [].concat(htmlWebpackPluginOptions[resourceHintType])
+      : defaultFilter;
+    // Process every filter
+    fileFilters.forEach(filter => {
+      if (filter.indexOf('*') !== -1) {
+        Array.prototype.push.apply(tags[resourceHintType], addResourceHintTags(
+          resourceHintType,
+          filter,
+          pluginData.body,
+          htmlWebpackPluginOptions
+        ));
+      } else {
+        tags[resourceHintType].push(createResourceHintTag(filter, resourceHintType, htmlWebpackPluginOptions));
       }
-      // If no options are found all files are prefetched / preload
-      const fileFilters = htmlWebpackPluginOptions[resourceHintType]
-        ? [].concat(htmlWebpackPluginOptions[resourceHintType])
-        : defaultFilter;
-      // Process every filter
-      fileFilters.forEach(filter => {
-        if (filter.indexOf('*') !== -1) {
-          Array.prototype.push.apply(tags[resourceHintType], this.addResourceHintTags(
-            resourceHintType,
-            filter,
-            pluginData.body,
-            htmlWebpackPluginOptions
-          ));
-        } else {
-          tags[resourceHintType].push(createResourceHintTag(filter, resourceHintType, htmlWebpackPluginOptions));
-        }
-      });
     });
-    // Add all Resource tags to the head
-    Array.prototype.push.apply(pluginData.head, tags.preload.map(addPreloadType));
-    Array.prototype.push.apply(pluginData.head, tags.prefetch);
-    callback(null, pluginData);
-  }
+  });
+  // Add all Resource tags to the head
+  Array.prototype.push.apply(pluginData.head, tags.preload.map(addPreloadType));
+  Array.prototype.push.apply(pluginData.head, tags.prefetch);
+  callback(null, pluginData);
+}
 
-  /**
-   * Adds Resource hint tags
-   */
-  addResourceHintTags (resourceHintType, filter, assetTags, htmlWebpackPluginOptions) {
-    const urls = assetTags
-      .map(tag => tag.attributes.src || tag.attributes.href)
-      .filter(url => url)
-      .filter(minimatch.filter(filter));
-    // Add a ResourceHint for every match
-    return urls.map(url => createResourceHintTag(url, resourceHintType, htmlWebpackPluginOptions));
-  }
+/**
+ * Adds Resource hint tags
+ */
+function addResourceHintTags (resourceHintType, filter, assetTags, htmlWebpackPluginOptions) {
+  const urls = assetTags
+    .map(tag => tag.attributes.src || tag.attributes.href)
+    .filter(url => url)
+    .filter(minimatch.filter(filter));
+  // Add a ResourceHint for every match
+  return urls.map(url => createResourceHintTag(url, resourceHintType, htmlWebpackPluginOptions));
 }
 
 function createResourceHintTag (url, resourceHintType, htmlWebpackPluginOptions) {
