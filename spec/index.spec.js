@@ -1,17 +1,17 @@
 /* eslint-env jasmine */
-var fs = require('fs');
-var path = require('path');
-var MemoryFileSystem = require('memory-fs');
-var webpack = require('webpack');
-var HtmlWebpackPlugin = require('html-webpack-plugin');
-var HtmlResourceHintPlugin = require('../');
+const fs = require('fs');
+const path = require('path');
+const MemoryFileSystem = require('memory-fs');
+const webpack = require('webpack');
+const HtmlWebpackPlugin = require('html-webpack-plugin');
+const HtmlResourceHintPlugin = require('../');
 
-var OUTPUT_DIR = path.join(__dirname, '../dist');
+const OUTPUT_DIR = path.join(__dirname, '../dist');
 
-describe('HtmlResourceHintPlugin', function () {
-  it('adds prefetch tags by default', function (done) {
-    var expected = fs.readFileSync(path.resolve(__dirname, 'fixtures/expected.html')).toString();
-    var compiler = webpack({
+describe('HtmlResourceHintPlugin', () => {
+  it('adds prefetch tags by default', (done) => {
+    const expected = fs.readFileSync(path.resolve(__dirname, 'fixtures/expected.html')).toString();
+    const compiler = webpack({
       entry: {
         main: path.join(__dirname, 'fixtures', 'entry.js')
       },
@@ -23,10 +23,10 @@ describe('HtmlResourceHintPlugin', function () {
         new HtmlWebpackPlugin(),
         new HtmlResourceHintPlugin()
       ]
-    }, function (err, result) {
+    }, (err, result) => {
       expect(err).toBeFalsy();
       expect(JSON.stringify(result.compilation.errors)).toBe('[]');
-      var html = result.compilation.assets['index.html'].source();
+      const html = result.compilation.assets['index.html'].source();
       expect(html).toBe(expected);
       done();
     });
@@ -34,10 +34,10 @@ describe('HtmlResourceHintPlugin', function () {
   });
 });
 
-describe('HtmlResourceHintPlugin', function () {
-  it('adds prefetch tags', function (done) {
-    var expected = fs.readFileSync(path.resolve(__dirname, 'fixtures/expected.html')).toString();
-    var compiler = webpack({
+describe('HtmlResourceHintPlugin', () => {
+  it('adds prefetch tags', (done) => {
+    const expected = fs.readFileSync(path.resolve(__dirname, 'fixtures/expected.html')).toString();
+    const compiler = webpack({
       entry: {
         main: path.join(__dirname, 'fixtures', 'entry.js')
       },
@@ -52,10 +52,10 @@ describe('HtmlResourceHintPlugin', function () {
         }),
         new HtmlResourceHintPlugin()
       ]
-    }, function (err, result) {
+    }, (err, result) => {
       expect(err).toBeFalsy();
       expect(JSON.stringify(result.compilation.errors)).toBe('[]');
-      var html = result.compilation.assets['index.html'].source();
+      const html = result.compilation.assets['index.html'].source();
       expect(html).toBe(expected);
       done();
     });
@@ -63,9 +63,9 @@ describe('HtmlResourceHintPlugin', function () {
   });
 });
 
-describe('HtmlResourceHintPlugin', function () {
-  it('adds no file which do not match the filter', function (done) {
-    var compiler = webpack({
+describe('HtmlResourceHintPlugin', () => {
+  it('adds no file which do not match the filter', (done) => {
+    const compiler = webpack({
       entry: {
         main: path.join(__dirname, 'fixtures', 'entry.js')
       },
@@ -80,10 +80,10 @@ describe('HtmlResourceHintPlugin', function () {
         }),
         new HtmlResourceHintPlugin()
       ]
-    }, function (err, result) {
+    }, (err, result) => {
       expect(err).toBeFalsy();
       expect(JSON.stringify(result.compilation.errors)).toBe('[]');
-      var html = result.compilation.assets['index.html'].source();
+      const html = result.compilation.assets['index.html'].source();
       expect(html.indexOf('rel="prefetch"') === -1).toBe(true);
       expect(html.indexOf('rel="preload"') === -1).toBe(true);
       done();
@@ -92,9 +92,9 @@ describe('HtmlResourceHintPlugin', function () {
   });
 });
 
-describe('HtmlResourceHintPlugin', function () {
-  it('allows to add fixed prefetch url', function (done) {
-    var compiler = webpack({
+describe('HtmlResourceHintPlugin', () => {
+  it('allows to add fixed prefetch url', (done) => {
+    const compiler = webpack({
       entry: {
         main: path.join(__dirname, 'fixtures', 'entry.js')
       },
@@ -108,10 +108,10 @@ describe('HtmlResourceHintPlugin', function () {
         }),
         new HtmlResourceHintPlugin()
       ]
-    }, function (err, result) {
+    }, (err, result) => {
       expect(err).toBeFalsy();
       expect(JSON.stringify(result.compilation.errors)).toBe('[]');
-      var html = result.compilation.assets['index.html'].source();
+      const html = result.compilation.assets['index.html'].source();
       expect(!!html.indexOf('<link rel="prefetch" href="demo.json">')).toBe(true);
       done();
     });
@@ -119,9 +119,9 @@ describe('HtmlResourceHintPlugin', function () {
   });
 });
 
-describe('HtmlResourceHintPlugin', function () {
-  it('allows to add fixed preload url', function (done) {
-    var compiler = webpack({
+describe('HtmlResourceHintPlugin', () => {
+  it('allows to add fixed preload url', (done) => {
+    const compiler = webpack({
       entry: {
         main: path.join(__dirname, 'fixtures', 'entry.js')
       },
@@ -135,10 +135,10 @@ describe('HtmlResourceHintPlugin', function () {
         }),
         new HtmlResourceHintPlugin()
       ]
-    }, function (err, result) {
+    }, (err, result) => {
       expect(err).toBeFalsy();
       expect(JSON.stringify(result.compilation.errors)).toBe('[]');
-      var html = result.compilation.assets['index.html'].source();
+      const html = result.compilation.assets['index.html'].source();
       expect(!!html.indexOf('<link rel="preload" href="demo.json">')).toBe(true);
       done();
     });
