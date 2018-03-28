@@ -1,10 +1,10 @@
 'use strict';
-var assert = require('assert');
-var objectAssign = require('object-assign');
-var minimatch = require('minimatch');
-var path = require('path');
+const assert = require('assert');
+const objectAssign = require('object-assign');
+const minimatch = require('minimatch');
+const path = require('path');
 
-var preloadDirective = {
+const preloadDirective = {
   '.js': 'script',
   '.css': 'style',
   '.woff': 'font',
@@ -16,16 +16,99 @@ var preloadDirective = {
   '.svg': 'image'
 };
 
-function ResourceHintWebpackPlugin (options) {
-  assert.equal(options, undefined, 'The ResourceHintWebpackPlugin does not accept any options');
+// By default all files are prefetched and preload
+const defaultFilter = ['**/*.*'];
+
+class ResourceHintWebpackPlugin {
+  constructor (options) {
+    assert.equal(options, undefined, 'The ResourceHintWebpackPlugin does not accept any options');
+  }
+
+  apply (compiler) {
+    // Hook into the html-webpack-plugin processing
+    if (compiler.hooks) {
+      // Webpack 4+ Plugin System
+      compiler.hooks.compilation.tap('ResourceHintWebpackPlugin', compilation => {
+        if (compilation.hooks.htmlWebpackPluginAlterAssetTags) {
+          compilation.hooks.htmlWebpackPluginAlterAssetTags.tapAsync('ResourceHintWebpackPluginAlterAssetTags',
+            this.resourceHintWebpackPluginAlterAssetTags.bind(this)
+          );
+        }
+      });
+    } else {
+      // Webpack 1-3 Plugin System
+      compiler.plugin('compilation', compilation => {
+        compilation.plugin('html-webpack-plugin-alter-asset-tags',
+          this.resourceHintWebpackPluginAlterAssetTags.bind(this)
+        );
+      });
+    }
+  }
+
+  /**
+   * The main processing function
+   */
+  resourceHintWebpackPluginAlterAssetTags (htmlPluginData, callback) {
+    const htmlWebpackPluginOptions = htmlPluginData.plugin.options;
+    const pluginData = objectAssign({}, htmlPluginData);
+    const tags = {
+      prefetch: [],
+      // https://w3c.github.io/preload/#link-type-preload
+      preload: []
+    };
+    // Create Resource tags
+    Object.keys(tags).forEach(resourceHintType => {
+      // Check if it is disabled for the current htmlWebpackPlugin instance:
+      // e.g.
+      // new HtmlWebpackPlugin({
+      //   prefetch: false
+      // })
+      if (htmlWebpackPluginOptions[resourceHintType] === false) {
+        return;
+      }
+      // If no options are found all files are prefetched / preload
+      const fileFilters = htmlWebpackPluginOptions[resourceHintType]
+        ? [].concat(htmlWebpackPluginOptions[resourceHintType])
+        : defaultFilter;
+      // Process every filter
+      fileFilters.forEach(filter => {
+        if (filter.indexOf('*') !== -1) {
+          Array.prototype.push.apply(tags[resourceHintType], this.addResourceHintTags(
+            resourceHintType,
+            filter,
+            pluginData.body,
+            htmlWebpackPluginOptions
+          ));
+        } else {
+          tags[resourceHintType].push(createResourceHintTag(filter, resourceHintType, htmlWebpackPluginOptions));
+        }
+      });
+    });
+    // Add all Resource tags to the head
+    Array.prototype.push.apply(pluginData.head, tags.preload.map(addPreloadType));
+    Array.prototype.push.apply(pluginData.head, tags.prefetch);
+    callback(null, pluginData);
+  }
+
+  /**
+   * Adds Resource hint tags
+   */
+  addResourceHintTags (resourceHintType, filter, assetTags, htmlWebpackPluginOptions) {
+    const urls = assetTags
+      .map(tag => tag.attributes.src || tag.attributes.href)
+      .filter(url => url)
+      .filter(minimatch.filter(filter));
+    // Add a ResourceHint for every match
+    return urls.map(url => createResourceHintTag(url, resourceHintType, htmlWebpackPluginOptions));
+  }
 }
 
-function createResourceHintTag (url, ResourceHintType, htmlWebpackPluginOptions) {
+function createResourceHintTag (url, resourceHintType, htmlWebpackPluginOptions) {
   return {
     tagName: 'link',
     selfClosingTag: !!htmlWebpackPluginOptions.xhtml,
     attributes: {
-      rel: ResourceHintType,
+      rel: resourceHintType,
       href: url
     }
   };
@@ -39,85 +122,11 @@ function createResourceHintTag (url, ResourceHintType, htmlWebpackPluginOptions)
  * @param {[type]} tag [description]
  */
 function addPreloadType (tag) {
-  var ext = path.extname(tag.attributes.href);
+  const ext = path.extname(tag.attributes.href);
   if (preloadDirective[ext]) {
     tag.attributes.as = preloadDirective[ext];
   }
   return tag;
 }
-
-ResourceHintWebpackPlugin.prototype.apply = function (compiler) {
-  var self = this;
-
-  function ResourceHintWebpackPluginAlterAssetTags (htmlPluginData, callback) {
-    var htmlWebpackPluginOptions = htmlPluginData.plugin.options;
-    var pluginData = objectAssign({}, htmlPluginData);
-    var tags = {
-      prefetch: [],
-      // https://w3c.github.io/preload/#link-type-preload
-      preload: []
-    };
-    // Create Resource tags
-    Object.keys(tags).forEach(function (ResourceHintType) {
-      var filters;
-      if (htmlWebpackPluginOptions[ResourceHintType] === false) {
-        return;
-      }
-      // Add all files by default:
-      if (htmlWebpackPluginOptions[ResourceHintType] === undefined) {
-        filters = ['**/*.*'];
-      } else {
-        filters = [].concat(htmlWebpackPluginOptions[ResourceHintType]);
-      }
-      filters.forEach(function (filter) {
-        if (filter.indexOf('*') !== -1) {
-          Array.prototype.push.apply(tags[ResourceHintType], self.addResourceHintTags(
-            ResourceHintType,
-            filter,
-            pluginData.body,
-            htmlWebpackPluginOptions
-          ));
-        } else {
-          tags[ResourceHintType].push(createResourceHintTag(filter, ResourceHintType, htmlWebpackPluginOptions));
-        }
-      });
-    });
-    // Add all Resource tags to the head
-    Array.prototype.push.apply(pluginData.head, tags.preload.map(addPreloadType));
-    Array.prototype.push.apply(pluginData.head, tags.prefetch);
-    callback(null, pluginData);
-  }
-
-  // Hook into the html-webpack-plugin processing
-  if (compiler.hooks) {
-    compiler.hooks.compilation.tap('ResourceHintWebpackPlugin', function (compilation) {
-      if (compilation.hooks.htmlWebpackPluginAlterAssetTags) {
-        compilation.hooks.htmlWebpackPluginAlterAssetTags.tapAsync('ResourceHintWebpackPluginAlterAssetTags', ResourceHintWebpackPluginAlterAssetTags);
-      }
-    });
-  } else {
-    compiler.plugin('compilation', function (compilation) {
-      compilation.plugin('html-webpack-plugin-alter-asset-tags', ResourceHintWebpackPluginAlterAssetTags);
-    });
-  }
-};
-
-/**
- * Adds Resource hint tags
- */
-ResourceHintWebpackPlugin.prototype.addResourceHintTags = function (ResourceHintType, filter, assetTags, htmlWebpackPluginOptions) {
-  var urls = assetTags
-    .map(function (tag) {
-      return tag.attributes.src || tag.attributes.href;
-    })
-    .filter(function (url) {
-      return url;
-    })
-    .filter(minimatch.filter(filter));
-  // Add a ResourceHint for every match
-  return urls.map(function (url) {
-    return createResourceHintTag(url, ResourceHintType, htmlWebpackPluginOptions);
-  });
-};
 
 module.exports = ResourceHintWebpackPlugin;

@@ -1,7 +1,16 @@
 language: node_js
 node_js:
-  - "0.12"
-  - "4"
-  - "5"
+  - stable
+  - 6
+env:
+  - WEBPACK_VERSION=3
+  - WEBPACK_VERSION=4.0.0
+before_install:
+  - stty columns 120
+install:
+  - npm install --ignore-scripts
+  - npm rm webpack
+  - npm rm extract-text-webpack-plugin
+  - npm install webpack@$WEBPACK_VERSION --ignore-scripts || true
 script:
   - npm test
